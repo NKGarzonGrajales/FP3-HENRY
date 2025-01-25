@@ -1,0 +1,56 @@
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import{jwtDecode} from "jwt-decode"; // Decodifica el token JWT
+
+export function middleware(request: NextRequest) {
+  const { pathname, origin } = request.nextUrl;
+
+  const userToken = request.cookies.get("token")?.value;
+
+  try {
+    // Si no hay token, redirige a login o protectedRoute para rutas específicas
+    if (!userToken) {
+      if (pathname.startsWith("/admin")) {
+        return NextResponse.redirect(new URL("/login", origin));
+      }
+      if (pathname.startsWith("/lostandfound")) {
+        return NextResponse.redirect(new URL("/protectedRoute", origin));
+      }
+    }
+
+    // Si hay un token, decodificarlo para obtener el rol
+    if (userToken) {
+      const decodedToken = jwtDecode<{ role: string }>(userToken);
+      const userRole = decodedToken?.role?.toUpperCase();
+
+      // Redirige a login si un usuario intenta acceder a rutas de admin
+      if (pathname.startsWith("/admin") && userRole !== "ADMIN") {
+        return NextResponse.redirect(new URL("/login", origin));
+      }
+
+      // Redirige a protectedRoute si un usuario que no es admin intenta acceder a lostandfound
+      if (pathname.startsWith("/lostandfound") && userRole !== "USER" && userRole !== "ADMIN") {
+        return NextResponse.redirect(new URL("/protectedRoute", origin));
+      }
+
+      // Evita que usuarios logueados accedan a login o register
+      if ((pathname === "/login" || pathname === "/register") && userToken) {
+        const dashboardURL = userRole === "ADMIN" ? "/admin" : "/";
+        return NextResponse.redirect(new URL(dashboardURL, origin));
+      }
+    }
+  } catch (error) {
+    console.error("Error en el middleware:", error);
+
+    // Si ocurre un error, redirige al login
+    return NextResponse.redirect(new URL("/login", origin));
+  }
+
+  return NextResponse.next();
+}
+
+
+export const config = {
+  matcher: ["/admin/:path*", "/lostandfound/:path*", "/login", "/register"],
+};
+

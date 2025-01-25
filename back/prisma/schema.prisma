@@ -1,0 +1,96 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String          @id @default(uuid()) @db.Uuid
+  name          String
+  phone         String
+  email         String          @unique
+  password      String?
+  googleId      String?         @unique
+  profilePicture String? 
+  createdAt     DateTime        @default(now())
+  role          Role            @default(USER)   
+  notifications Notifications[]
+  pets          Pets[]
+  posts         Post[]
+  pqr           Pqr[]
+}
+
+model Post {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  petType     String
+  contactInfo String
+  dateLost    DateTime
+  location    Location? @relation
+  photoUrl    String
+  status      String
+  userId      String   @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Donations {
+  id        String   @id @default(uuid()) @db.Uuid
+  amount    Float
+  email     String
+  paymentIntent String   
+  createdAt DateTime @default(now())
+ 
+}
+
+model Notifications {
+  id        String   @id @default(uuid()) @db.Uuid
+  content   String
+  type      String
+  isRead    Boolean  @default(false)
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Pets {
+  id          String @id @default(uuid()) @db.Uuid
+  name        String
+  type        String
+  genero      String
+  description String
+  status      String
+  imgUrl      String
+  userId      String @db.Uuid
+  user        User   @relation(fields: [userId], references: [id])
+}
+
+model Pqr {
+  id          String   @id @default(uuid()) @db.Uuid
+  fullname    String
+  email       String
+  type        String
+  description String
+  userId      String   @db.Uuid
+  user        User   @relation(fields: [userId], references: [id]) 
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Location {
+  id        String  @id @default(uuid()) @db.Uuid
+  latitude  Float
+  longitude Float
+  address   String?
+  postId    String? @unique @db.Uuid
+  post      Post?   @relation(fields: [postId], references: [id])
+}
